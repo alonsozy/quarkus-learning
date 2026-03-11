@@ -28,7 +28,7 @@ public class ExpenseResource {
 
     @DELETE
     @Path("{uuid}")
-    public Set<Expense> delete(@PathParam("uuid") UUID uuid) {
+    public Set<Expense> delete(@PathParam("uuid") UUID uuid) { // the parameter has the same name of the Path, the annotation PathParam is not necessary
         if (!expenseService.delete(uuid)) {
             throw new WebApplicationException(Response.Status.NOT_FOUND);
         }

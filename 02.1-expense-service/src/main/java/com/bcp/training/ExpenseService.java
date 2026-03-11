@@ -27,10 +27,12 @@ public class ExpenseService {
     }
 
     public Set<Expense> list() {
+        System.out.println("<<<<<<< Get Expense List >>>>>>>>>>");
         return expenses;
     }
 
     public Expense create(Expense expense) {
+        System.out.println("<<<<<<< Adding Expense >>>>>>>>>>");
         expenses.add(expense);
         return expense;
     }
