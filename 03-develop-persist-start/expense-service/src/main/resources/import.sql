@@ -3,6 +3,8 @@ insert into Associate (id, name)
 values (1, 'Jaime');
 insert into Associate (id, name)
 values (2, 'Pablo');
+insert into Associate (id, name)
+values (3, 'Alonso');
 
 
 insert into Expense (uuid, id, name, paymentmethod, amount, associate_id)
@@ -34,3 +36,8 @@ values (gen_random_uuid(), nextval('Expense_SEQ'), 'Internet', '1','20.00', 2);
 
 insert into Expense (uuid, id, name, paymentmethod, amount, associate_id)
 values (gen_random_uuid(), nextval('Expense_SEQ'), 'Phone', '0','15.00', 2);
+
+SELECT setval(
+               pg_get_serial_sequence('associate', 'id'),
+               (SELECT MAX(id) FROM associate)
+       );

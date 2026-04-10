@@ -19,8 +19,8 @@ import jakarta.ws.rs.core.Response;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntity;
 
-// TODO: Add @Entity annotation and extend PanacheEntity
-public class Expense {
+@Entity
+public class Expense extends PanacheEntity {
 
     public enum PaymentMethod {
         CASH, CREDIT_CARD, DEBIT_CARD,
@@ -35,13 +35,15 @@ public class Expense {
     public PaymentMethod paymentMethod;
     public BigDecimal amount;
 
-    // TODO: Add many-to-one relationship between expense and associate
-    public Associate associate;
+    @JsonbTransient
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "associate_id", insertable = false, updatable = false)
+    public Associate associate1;
 
-    // TODO: Annotate the associateId with @Column
+    @Column(name = "associate_id")
     public Long associateId;
 
-    // TODO: Add a no-argument constructor
+    public Expense() {}
 
     public Expense(UUID uuid, String name, LocalDateTime creationDate,
                    PaymentMethod paymentMethod, String amount, Associate associate) {
@@ -50,8 +52,8 @@ public class Expense {
         this.creationDate = creationDate;
         this.paymentMethod = paymentMethod;
         this.amount = new BigDecimal(amount);
-        this.associate = associate;
-        // TODO: Add associateId association
+        this.associate1 = associate;
+        this.associateId = associate.id;
     }
 
     public Expense(String name, PaymentMethod paymentMethod, String amount, Associate associate) {
@@ -60,11 +62,22 @@ public class Expense {
 
     @JsonbCreator
     public static Expense of(String name, PaymentMethod paymentMethod, String amount, Long associateId) {
-
-        // TODO: Update regarding the new relationship
-        return new Expense(name, paymentMethod, amount, null);
+        return Associate.<Associate>findByIdOptional(associateId)
+                .map(associate -> new Expense(name, paymentMethod, amount, associate))
+                .orElseThrow(RuntimeException::new);
     }
 
-    // TODO: Add update() method
+    public static void update(final Expense expense) throws RuntimeException {
+        Optional<Expense> previous = Expense.findByIdOptional(expense.id);
+        previous.ifPresentOrElse((toUpdate) -> {
+            toUpdate.uuid = expense.uuid;
+            toUpdate.name = expense.name;
+            toUpdate.amount = expense.amount;
+            toUpdate.paymentMethod = expense.paymentMethod;
+            toUpdate.persist(); // usando active records (la entidad maneja la persistencia)
+        }, () -> {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        });
+    }
 
 }

@@ -1,6 +1,8 @@
 package com.bcp.training.rest;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import jakarta.transaction.Transactional;
@@ -30,32 +32,76 @@ import io.quarkus.panache.common.Sort;
 public class ExpenseResource {
 
     @GET
-    // TODO 1: Implement with a call to "listAll()" of Expense entity.
     // TODO 2: Add pagination and sort by "amount" and "associateId".
     public List<Expense> list() {
-        return null;
+        return Expense.listAll();
+    }
+
+    @GET
+    @Path("/pagination")
+    public List<Expense> listWithPagination(@DefaultValue("5") @QueryParam("page") int page,
+                                            @DefaultValue("1") @QueryParam("size") int size) {
+        // adding sorting
+        PanacheQuery<Expense> expensePanacheQuery = Expense.findAll(
+                Sort.by("amount").and("id")
+        );
+        return expensePanacheQuery
+                .page(
+                        Page.of(page-1, size))
+                .list();
+    }
+
+    @GET
+    @Path("/v2/pagination")
+    public List<Expense> listWithPaginationV2(@DefaultValue("1") @QueryParam("page") int page,
+                                              @DefaultValue("5") @QueryParam("size") int size,
+                                              @DefaultValue("id") @QueryParam("sort") String sortField,
+                                              @DefaultValue("asc") @QueryParam("direction") String direction) {
+        Sort sort;
+        Set<String> allowedSortFields = Set.of("id", "name");
+
+        if (!allowedSortFields.contains(sortField)) {
+            sortField = "id";
+        }
+        if("desc".equalsIgnoreCase(direction)) {
+            sort = Sort.by(sortField).descending();
+        }else{
+            sort = Sort.by(sortField).ascending();
+        }
+
+        return Expense
+                .findAll(sort)
+                .page(Page.of(page-1, size))
+                .list();
     }
 
     @POST
-    // TODO: Make the method transactional
+    @Transactional
     public Expense create(final Expense expense) {
         Expense newExpense = Expense.of(expense.name, expense.paymentMethod,
                 expense.amount.toString(), expense.associateId);
-        // TODO: Use the "persist()" method of the entity.
+        newExpense.persist();
 
         return newExpense;
     }
 
     @DELETE
     @Path("{uuid}")
-    // TODO: Make the method transactional
+    @Transactional
     public void delete(@PathParam("uuid") final UUID uuid) {
-        // TODO: Use the "delete()" method of the entity and list the expenses
+        long numExpensesDeleted = Expense.delete("uuid",uuid);
+        if(numExpensesDeleted == 0) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
     }
 
     @PUT
-    // TODO: Make the method transactional
+    @Transactional
     public void update(final Expense expense) {
-        // TODO: Use the "update()" method of the entity.
+       try{
+           Expense.update(expense);
+       }catch(RuntimeException e){
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+       }
     }
 }
